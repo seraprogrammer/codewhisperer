@@ -9,9 +9,12 @@ import {
   Edit,
   Trash2,
   ChevronRight,
+  Download,
+  Copy,
 } from "lucide-react";
 import { getIconForFile, getIconForFolder } from "vscode-icons-js";
 import { FileIcon } from "./FileIcon";
+import JSZip from "jszip";
 
 // Add a helper function for file icons and colors
 const getFileIconAndColor = (fileName) => {
@@ -405,6 +408,167 @@ export const FileExplorerPanel = ({
     ));
   };
 
+  // Add findItem helper function
+  const findItem = (items, id) => {
+    for (let item of items) {
+      if (item.id === id) return item;
+      if (item.children) {
+        const found = findItem(item.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // Add new helper functions for download and duplicate
+  const downloadFile = (item) => {
+    const blob = new Blob([item.content || ""], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = item.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const downloadProject = () => {
+    // Create a zip file containing all project files
+    const zip = new JSZip();
+
+    const addToZip = (items, currentPath = "") => {
+      items.forEach((item) => {
+        if (item.type === "file") {
+          zip.file(currentPath + item.name, item.content || "");
+        } else if (item.type === "folder") {
+          const folderPath = currentPath + item.name + "/";
+          item.children?.forEach((child) => addToZip([child], folderPath));
+        }
+      });
+    };
+
+    addToZip(files);
+
+    zip.generateAsync({ type: "blob" }).then((content) => {
+      const url = window.URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "project.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    });
+  };
+
+  // Add new helper function for duplicating items
+  const duplicateItem = (item, parentId = null) => {
+    const newId = generateUniqueId();
+    const getNewName = (name) => {
+      const parts = name.split(".");
+      if (parts.length > 1) {
+        // For files with extension
+        const ext = parts.pop();
+        const baseName = parts.join(".");
+
+        // Check if the name already ends with _copyX
+        const copyMatch = baseName.match(/^(.*?)(?:_copy(\d+))?$/);
+        const originalName = copyMatch[1];
+
+        // Find existing copies to determine the next number
+        const existingCopies = files
+          .flatMap((item) => {
+            const getAllFiles = (items) => {
+              return items.flatMap((item) => {
+                if (item.type === "folder" && item.children) {
+                  return getAllFiles(item.children);
+                }
+                return item;
+              });
+            };
+            return getAllFiles([item]);
+          })
+          .map((item) => {
+            const match = item.name.match(
+              new RegExp(`^${originalName}_copy(\\d+)\\.${ext}$`)
+            );
+            return match ? parseInt(match[1]) : 0;
+          })
+          .filter((num) => num > 0);
+
+        const nextNumber =
+          existingCopies.length > 0 ? Math.max(...existingCopies) + 1 : 1;
+        return `${originalName}_copy${nextNumber}.${ext}`;
+      }
+
+      // For folders
+      const folderMatch = name.match(/^(.*?)(?:_copy(\d+))?$/);
+      const originalName = folderMatch[1];
+
+      const existingCopies = files
+        .flatMap((item) => {
+          const getAllFolders = (items) => {
+            return items.flatMap((item) => {
+              const result = [item];
+              if (item.type === "folder" && item.children) {
+                result.push(...getAllFolders(item.children));
+              }
+              return result;
+            });
+          };
+          return getAllFolders([item]);
+        })
+        .map((item) => {
+          const match = item.name.match(
+            new RegExp(`^${originalName}_copy(\\d+)$`)
+          );
+          return match ? parseInt(match[1]) : 0;
+        })
+        .filter((num) => num > 0);
+
+      const nextNumber =
+        existingCopies.length > 0 ? Math.max(...existingCopies) + 1 : 1;
+      return `${originalName}_copy${nextNumber}`;
+    };
+
+    const duplicatedItem = {
+      ...item,
+      id: newId,
+      name: getNewName(item.name),
+      children: item.children
+        ? item.children.map((child) => duplicateItem(child, newId))
+        : null,
+    };
+
+    return duplicatedItem;
+  };
+
+  // Update setFiles to handle duplication
+  const handleDuplicate = (id) => {
+    setFiles((prevFiles) => {
+      const duplicateInTree = (items, targetId) => {
+        const result = [...items];
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].id === targetId) {
+            const duplicated = duplicateItem(items[i]);
+            result.splice(i + 1, 0, duplicated);
+            return result;
+          }
+          if (items[i].children) {
+            const newChildren = duplicateInTree(items[i].children, targetId);
+            if (newChildren !== items[i].children) {
+              result[i] = { ...items[i], children: newChildren };
+              return result;
+            }
+          }
+        }
+        return result;
+      };
+      return duplicateInTree(prevFiles, id);
+    });
+  };
+
   return (
     <div
       className={`w-60 h-full overflow-y-auto select-none relative
@@ -420,6 +584,14 @@ export const FileExplorerPanel = ({
             Explorer
           </span>
           <div className="flex space-x-1">
+            <button
+              onClick={downloadProject}
+              className={`p-1 rounded-[3px] hover:bg-[#ffffff1f]
+                ${isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"}`}
+              title="Download Project"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
             <button
               onClick={(e) => handleCreateNew("file", null, e)}
               className={`p-1 rounded-[3px] hover:bg-[#ffffff1f]
@@ -501,6 +673,39 @@ export const FileExplorerPanel = ({
               </button>
             </>
           )}
+          {contextMenu.type === "file" && (
+            <button
+              className={`w-full text-left px-3 py-[6px] text-[13px] flex items-center
+                ${
+                  isDarkMode
+                    ? "hover:bg-[#2a2d2e] text-[#cccccc]"
+                    : "hover:bg-[#e8e8e9] text-[#333333]"
+                }`}
+              onClick={() => {
+                const item = findItem(files, contextMenu.targetId);
+                if (item) downloadFile(item);
+                closeContextMenu();
+              }}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </button>
+          )}
+          <button
+            className={`w-full text-left px-3 py-[6px] text-[13px] flex items-center
+              ${
+                isDarkMode
+                  ? "hover:bg-[#2a2d2e] text-[#cccccc]"
+                  : "hover:bg-[#e8e8e9] text-[#333333]"
+              }`}
+            onClick={() => {
+              handleDuplicate(contextMenu.targetId);
+              closeContextMenu();
+            }}
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            Duplicate
+          </button>
           <div
             className={`my-1 h-px ${
               isDarkMode ? "bg-[#454545]" : "bg-[#e4e4e4]"

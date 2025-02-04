@@ -16,6 +16,7 @@
     "@fontsource/source-code-pro": "^5.1.1",
     "@monaco-editor/react": "^4.6.0",
     "@tailwindcss/vite": "^4.0.3",
+    "jszip": "^3.10.1",
     "lucide": "^0.474.0",
     "lucide-react": "^0.474.0",
     "prism-react-renderer": "^2.4.1",
