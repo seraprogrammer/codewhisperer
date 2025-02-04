@@ -569,6 +569,35 @@ export const FileExplorerPanel = ({
     });
   };
 
+  // Add helper function to create zip for a folder
+  const downloadFolderAsZip = (folder) => {
+    const zip = new JSZip();
+
+    const addToZip = (items, currentPath = "") => {
+      items.forEach((item) => {
+        if (item.type === "file") {
+          zip.file(currentPath + item.name, item.content || "");
+        } else if (item.type === "folder") {
+          const folderPath = currentPath + item.name + "/";
+          item.children?.forEach((child) => addToZip([child], folderPath));
+        }
+      });
+    };
+
+    addToZip([folder], "");
+
+    zip.generateAsync({ type: "blob" }).then((content) => {
+      const url = window.URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${folder.name}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    });
+  };
+
   return (
     <div
       className={`w-60 h-full overflow-y-auto select-none relative
@@ -670,6 +699,22 @@ export const FileExplorerPanel = ({
               >
                 <FolderPlus className="w-4 h-4 mr-2" />
                 New Folder
+              </button>
+              <button
+                className={`w-full text-left px-3 py-[6px] text-[13px] flex items-center
+                  ${
+                    isDarkMode
+                      ? "hover:bg-[#2a2d2e] text-[#cccccc]"
+                      : "hover:bg-[#e8e8e9] text-[#333333]"
+                  }`}
+                onClick={() => {
+                  const folder = findItem(files, contextMenu.targetId);
+                  if (folder) downloadFolderAsZip(folder);
+                  closeContextMenu();
+                }}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download as ZIP
               </button>
             </>
           )}
