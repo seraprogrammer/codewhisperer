@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   FileText,
   Folder,
@@ -8,6 +8,7 @@ import {
   X,
   Edit,
   Trash2,
+  ChevronRight,
 } from "lucide-react";
 import { getIconForFile, getIconForFolder } from "vscode-icons-js";
 import { FileIcon } from "./FileIcon";
@@ -36,6 +37,7 @@ export const FileExplorerPanel = ({
   files,
   setFiles,
   onFileClick,
+  onFileDelete,
 }) => {
   const [newItemName, setNewItemName] = useState("");
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -44,6 +46,15 @@ export const FileExplorerPanel = ({
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameItemId, setRenameItemId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+
+  // Add context menu state
+  const [contextMenu, setContextMenu] = useState({
+    show: false,
+    x: 0,
+    y: 0,
+    type: null,
+    targetId: null,
+  });
 
   const generateUniqueId = () =>
     `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -54,6 +65,84 @@ export const FileExplorerPanel = ({
     setIsCreatingNew(true);
     setCreatingInFolderId(folderId);
     setNewItemName("");
+  };
+
+  const handleRename = (id) => {
+    const findItem = (items) => {
+      for (let item of items) {
+        if (item.id === id) return item;
+        if (item.children) {
+          const found = findItem(item.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const itemToRename = findItem(files);
+    if (itemToRename) {
+      setRenameValue(itemToRename.name);
+      setRenameItemId(id);
+      setIsRenaming(true);
+    }
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm("Are you sure you want to delete this item?")) {
+      setFiles((prevFiles) => {
+        const deleteItem = (items) => {
+          return items.filter((item) => {
+            if (item.id === id) return false;
+            if (item.children) {
+              item.children = deleteItem(item.children);
+            }
+            return true;
+          });
+        };
+        return deleteItem([...prevFiles]);
+      });
+
+      // Close any open tabs for the deleted file
+      if (typeof onFileDelete === "function") {
+        onFileDelete(id);
+      }
+    }
+  };
+
+  const submitRename = (e) => {
+    if (e.key === "Enter" && renameValue.trim()) {
+      setFiles((prevFiles) => {
+        const renameItem = (items) => {
+          return items.map((item) => {
+            if (item.id === renameItemId) {
+              return {
+                ...item,
+                name:
+                  item.type === "file" && !renameValue.includes(".")
+                    ? `${renameValue}.js`
+                    : renameValue,
+              };
+            }
+            if (item.children) {
+              return {
+                ...item,
+                children: renameItem(item.children),
+              };
+            }
+            return item;
+          });
+        };
+        return renameItem(prevFiles);
+      });
+
+      setIsRenaming(false);
+      setRenameItemId(null);
+      setRenameValue("");
+    } else if (e.key === "Escape") {
+      setIsRenaming(false);
+      setRenameItemId(null);
+      setRenameValue("");
+    }
   };
 
   const submitNewItem = (e) => {
@@ -110,88 +199,45 @@ export const FileExplorerPanel = ({
     return `https://cdn.jsdelivr.net/npm/vscode-icons-js@latest/icons/${iconPath}`;
   };
 
-  const handleRename = (id, e) => {
+  const handleContextMenu = (e, type, id) => {
+    e.preventDefault();
     e.stopPropagation();
-    const findItem = (items) => {
-      for (let item of items) {
-        if (item.id === id) return item;
-        if (item.children) {
-          const found = findItem(item.children);
-          if (found) return found;
-        }
+    setContextMenu({
+      show: true,
+      x: e.pageX,
+      y: e.pageY,
+      type,
+      targetId: id,
+    });
+  };
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu({ show: false, x: 0, y: 0, type: null, targetId: null });
+  }, []);
+
+  // Add useEffect for handling context menu clicks outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.show) {
+        closeContextMenu();
       }
-      return null;
     };
 
-    const itemToRename = findItem(files);
-    if (itemToRename) {
-      setRenameValue(itemToRename.name);
-      setRenameItemId(id);
-      setIsRenaming(true);
-    }
-  };
-
-  const handleDelete = (id, e) => {
-    e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this item?")) {
-      setFiles((prevFiles) => {
-        const deleteItem = (items) => {
-          return items.filter((item) => {
-            if (item.id === id) return false;
-            if (item.children) {
-              item.children = deleteItem(item.children);
-            }
-            return true;
-          });
-        };
-        return deleteItem([...prevFiles]);
-      });
-    }
-  };
-
-  const submitRename = (e) => {
-    if (e.key === "Enter" && renameValue.trim()) {
-      setFiles((prevFiles) => {
-        const renameItem = (items) => {
-          return items.map((item) => {
-            if (item.id === renameItemId) {
-              return {
-                ...item,
-                name:
-                  item.type === "file" && !renameValue.includes(".")
-                    ? `${renameValue}.js`
-                    : renameValue,
-              };
-            }
-            if (item.children) {
-              return {
-                ...item,
-                children: renameItem(item.children),
-              };
-            }
-            return item;
-          });
-        };
-        return renameItem(prevFiles);
-      });
-
-      setIsRenaming(false);
-      setRenameItemId(null);
-      setRenameValue("");
-    } else if (e.key === "Escape") {
-      setIsRenaming(false);
-      setRenameItemId(null);
-      setRenameValue("");
-    }
-  };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [contextMenu.show, closeContextMenu]);
 
   const renderFileTree = (items, path = []) => {
     return items.map((item) => (
-      <div key={item.id} className="ml-4">
+      <div key={item.id}>
         <div
-          className={`flex items-center py-1 px-2 hover:bg-[#2d2d2d] cursor-pointer group ${
-            isDarkMode ? "text-gray-300 hover:text-white" : "text-gray-700"
-          }`}
+          className={`flex items-center py-[2px] cursor-pointer group relative
+            ${
+              isDarkMode
+                ? "hover:bg-[#2a2d2e] active:bg-[#37373d]"
+                : "hover:bg-[#e8e8e9] active:bg-[#d8d8d8]"
+            }`}
+          style={{ paddingLeft: `${path.length * 8 + 8}px` }}
           onClick={() => {
             if (item.type === "file") {
               onFileClick(item);
@@ -209,98 +255,149 @@ export const FileExplorerPanel = ({
               });
             }
           }}
+          onContextMenu={(e) => handleContextMenu(e, item.type, item.id)}
         >
-          <div className="flex-1 flex items-center min-w-0">
-            <div className="mr-2">
+          {/* Indent Guide Lines */}
+          {path.map((_, index) => (
+            <div
+              key={index}
+              className={`absolute w-[1px] h-full top-0 
+                ${isDarkMode ? "bg-[#404040]" : "bg-[#eaeaea]"}`}
+              style={{ left: `${(index + 1) * 8}px` }}
+            />
+          ))}
+
+          {/* File/Folder Icon and Name Container */}
+          <div className="flex items-center min-w-0 h-[22px] relative">
+            {/* Chevron for folders */}
+            {item.type === "folder" && (
+              <div className="absolute left-0">
+                <ChevronRight
+                  className={`w-4 h-4 transform transition-transform duration-100 
+                    ${item.isOpen ? "rotate-90" : ""} 
+                    ${
+                      isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"
+                    } opacity-70`}
+                />
+              </div>
+            )}
+
+            {/* Icon */}
+            <div
+              className={`flex-shrink-0 ${
+                item.type === "folder" ? "ml-4" : "ml-4"
+              }`}
+            >
               <FileIcon
                 filename={item.name}
                 isFolder={item.type === "folder"}
                 isOpen={item.type === "folder" && item.isOpen}
               />
             </div>
-            {isRenaming && renameItemId === item.id ? (
-              <input
-                type="text"
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onKeyDown={submitRename}
-                className={`w-full px-1 rounded ${
-                  isDarkMode
-                    ? "bg-[#3c3c3c] text-white"
-                    : "bg-white text-gray-800"
-                }`}
-                autoFocus
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <span className="truncate">{item.name}</span>
-            )}
-          </div>
 
-          <div className="hidden group-hover:flex items-center space-x-1">
+            {/* Name */}
+            <div className="ml-1.5 flex-1 min-w-0">
+              {isRenaming && renameItemId === item.id ? (
+                <input
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onKeyDown={submitRename}
+                  className={`w-full px-1 py-0 h-[20px] outline-none border border-[#007fd4] rounded-[3px]
+                    ${
+                      isDarkMode
+                        ? "bg-[#3c3c3c] text-[#cccccc]"
+                        : "bg-white text-[#333333]"
+                    }`}
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span
+                  className={`truncate select-none text-[13px] leading-[22px]
+                    ${isDarkMode ? "text-[#cccccc]" : "text-[#333333]"}`}
+                >
+                  {item.name}
+                </span>
+              )}
+            </div>
+
+            {/* Hover Actions */}
             {item.type === "folder" && (
-              <>
+              <div
+                className={`hidden group-hover:flex items-center space-x-1 ml-2 mr-1
+                  ${isDarkMode ? "bg-[#2a2d2e]" : "bg-[#e8e8e9]"}`}
+              >
                 <button
                   onClick={(e) => handleCreateNew("file", item.id, e)}
-                  className={`p-1 rounded-sm ${
-                    isDarkMode ? "hover:bg-[#3c3c3c]" : "hover:bg-gray-200"
-                  }`}
+                  className={`p-0.5 rounded-[3px] hover:bg-[#ffffff1f]
+                    ${isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"}`}
                   title="New File"
                 >
-                  <FilePlus className="w-3.5 h-3.5 text-gray-400" />
+                  <FilePlus className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={(e) => handleCreateNew("folder", item.id, e)}
-                  className={`p-1 rounded-sm ${
-                    isDarkMode ? "hover:bg-[#3c3c3c]" : "hover:bg-gray-200"
-                  }`}
+                  className={`p-0.5 rounded-[3px] hover:bg-[#ffffff1f]
+                    ${isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"}`}
                   title="New Folder"
                 >
-                  <FolderPlus className="w-3.5 h-3.5 text-gray-400" />
+                  <FolderPlus className="w-3.5 h-3.5" />
                 </button>
-              </>
+              </div>
             )}
-            <button
-              onClick={(e) => handleRename(item.id, e)}
-              className={`p-1 rounded-sm ${
-                isDarkMode ? "hover:bg-[#3c3c3c]" : "hover:bg-gray-200"
-              }`}
-              title="Rename"
-            >
-              <Edit className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-            <button
-              onClick={(e) => handleDelete(item.id, e)}
-              className={`p-1 rounded-sm ${
-                isDarkMode ? "hover:bg-[#3c3c3c]" : "hover:bg-gray-200"
-              }`}
-              title="Delete"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-red-400" />
-            </button>
           </div>
         </div>
 
+        {/* New Item Input with Icon */}
         {isCreatingNew && creatingInFolderId === item.id && (
-          <div className="ml-4 mt-1">
-            <input
-              type="text"
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
-              onKeyDown={submitNewItem}
-              placeholder={`New ${creationType}...`}
-              className={`w-full px-2 py-1 rounded ${
-                isDarkMode
-                  ? "bg-[#3c3c3c] text-white placeholder-gray-500"
-                  : "bg-white text-gray-800 placeholder-gray-400"
-              }`}
-              autoFocus
-            />
+          <div
+            className="relative"
+            style={{ paddingLeft: `${(path.length + 1) * 8 + 8}px` }}
+          >
+            <div className="flex items-center">
+              <div className="flex-shrink-0 w-4 h-4 mr-1.5">
+                {creationType === "file" ? (
+                  <FileText
+                    className={`w-4 h-4 ${
+                      isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"
+                    }`}
+                  />
+                ) : (
+                  <Folder
+                    className={`w-4 h-4 ${
+                      isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"
+                    }`}
+                  />
+                )}
+              </div>
+              <input
+                type="text"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                onKeyDown={submitNewItem}
+                onBlur={() => {
+                  setIsCreatingNew(false);
+                  setNewItemName("");
+                }}
+                placeholder={
+                  creationType === "file" ? "filename.js" : "foldername"
+                }
+                className={`flex-1 px-1 py-0 h-[22px] outline-none border border-[#007fd4] rounded-[3px] text-[13px]
+                  ${
+                    isDarkMode
+                      ? "bg-[#3c3c3c] text-[#cccccc] placeholder-[#666666]"
+                      : "bg-white text-[#333333] placeholder-[#999999]"
+                  }`}
+                autoFocus
+              />
+            </div>
           </div>
         )}
 
+        {/* Nested Items */}
         {item.type === "folder" && item.isOpen && (
-          <div className="ml-4">
+          <div className="relative">
             {renderFileTree(item.children || [], [...path, item.id])}
           </div>
         )}
@@ -310,61 +407,164 @@ export const FileExplorerPanel = ({
 
   return (
     <div
-      className={`w-60 h-full overflow-y-auto ${
-        isDarkMode ? "bg-[#252526]" : "bg-gray-100"
-      }`}
+      className={`w-60 h-full overflow-y-auto select-none relative
+        ${isDarkMode ? "bg-[#252526]" : "bg-[#f3f3f3]"}`}
     >
-      <div className="p-2">
-        <div className="flex justify-between items-center mb-2">
+      {/* Explorer Header */}
+      <div className="px-4 py-2">
+        <div className="flex justify-between items-center">
           <span
-            className={`text-sm font-semibold ${
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            }`}
+            className={`text-[11px] uppercase tracking-wide font-semibold
+              ${isDarkMode ? "text-[#bbbbbb]" : "text-[#6f6f6f]"}`}
           >
-            EXPLORER
+            Explorer
           </span>
           <div className="flex space-x-1">
             <button
               onClick={(e) => handleCreateNew("file", null, e)}
-              className={`p-1 rounded-sm ${
-                isDarkMode ? "hover:bg-[#3c3c3c]" : "hover:bg-gray-200"
-              }`}
+              className={`p-1 rounded-[3px] hover:bg-[#ffffff1f]
+                ${isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"}`}
               title="New File"
             >
-              <FilePlus className="w-4 h-4 text-gray-400" />
+              <FilePlus className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={(e) => handleCreateNew("folder", null, e)}
-              className={`p-1 rounded-sm ${
-                isDarkMode ? "hover:bg-[#3c3c3c]" : "hover:bg-gray-200"
-              }`}
+              className={`p-1 rounded-[3px] hover:bg-[#ffffff1f]
+                ${isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"}`}
               title="New Folder"
             >
-              <FolderPlus className="w-4 h-4 text-gray-400" />
+              <FolderPlus className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
+      </div>
 
-        {isCreatingNew && !creatingInFolderId && (
-          <div className="mb-2">
+      {/* Context Menu */}
+      {contextMenu.show && (
+        <div
+          className={`fixed z-50 min-w-[120px] py-1 rounded-[5px] shadow-lg
+            ${
+              isDarkMode
+                ? "bg-[#252526] border border-[#454545]"
+                : "bg-white border border-[#e4e4e4]"
+            }`}
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className={`w-full text-left px-3 py-[6px] text-[13px] flex items-center
+              ${
+                isDarkMode
+                  ? "hover:bg-[#2a2d2e] text-[#cccccc]"
+                  : "hover:bg-[#e8e8e9] text-[#333333]"
+              }`}
+            onClick={() => {
+              handleRename(contextMenu.targetId);
+              closeContextMenu();
+            }}
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Rename
+          </button>
+          {contextMenu.type === "folder" && (
+            <>
+              <button
+                className={`w-full text-left px-3 py-[6px] text-[13px] flex items-center
+                  ${
+                    isDarkMode
+                      ? "hover:bg-[#2a2d2e] text-[#cccccc]"
+                      : "hover:bg-[#e8e8e9] text-[#333333]"
+                  }`}
+                onClick={(e) => {
+                  handleCreateNew("file", contextMenu.targetId, e);
+                  closeContextMenu();
+                }}
+              >
+                <FilePlus className="w-4 h-4 mr-2" />
+                New File
+              </button>
+              <button
+                className={`w-full text-left px-3 py-[6px] text-[13px] flex items-center
+                  ${
+                    isDarkMode
+                      ? "hover:bg-[#2a2d2e] text-[#cccccc]"
+                      : "hover:bg-[#e8e8e9] text-[#333333]"
+                  }`}
+                onClick={(e) => {
+                  handleCreateNew("folder", contextMenu.targetId, e);
+                  closeContextMenu();
+                }}
+              >
+                <FolderPlus className="w-4 h-4 mr-2" />
+                New Folder
+              </button>
+            </>
+          )}
+          <div
+            className={`my-1 h-px ${
+              isDarkMode ? "bg-[#454545]" : "bg-[#e4e4e4]"
+            }`}
+          />
+          <button
+            className={`w-full text-left px-3 py-[6px] text-[13px] flex items-center text-red-500
+              ${isDarkMode ? "hover:bg-[#2a2d2e]" : "hover:bg-[#e8e8e9]"}`}
+            onClick={() => {
+              handleDelete(contextMenu.targetId);
+              closeContextMenu();
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
+          </button>
+        </div>
+      )}
+
+      {/* Root Level New Item Input with Icon */}
+      {isCreatingNew && !creatingInFolderId && (
+        <div className="px-4 mt-2">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 w-4 h-4 mr-1.5">
+              {creationType === "file" ? (
+                <FileText
+                  className={`w-4 h-4 ${
+                    isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"
+                  }`}
+                />
+              ) : (
+                <Folder
+                  className={`w-4 h-4 ${
+                    isDarkMode ? "text-[#c5c5c5]" : "text-[#424242]"
+                  }`}
+                />
+              )}
+            </div>
             <input
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               onKeyDown={submitNewItem}
-              placeholder={`New ${creationType}...`}
-              className={`w-full px-2 py-1 rounded ${
-                isDarkMode
-                  ? "bg-[#3c3c3c] text-white placeholder-gray-500"
-                  : "bg-white text-gray-800 placeholder-gray-400"
-              }`}
+              onBlur={() => {
+                setIsCreatingNew(false);
+                setNewItemName("");
+              }}
+              placeholder={
+                creationType === "file" ? "filename.js" : "foldername"
+              }
+              className={`flex-1 px-1 py-0 h-[22px] outline-none border border-[#007fd4] rounded-[3px] text-[13px]
+                ${
+                  isDarkMode
+                    ? "bg-[#3c3c3c] text-[#cccccc] placeholder-[#666666]"
+                    : "bg-white text-[#333333] placeholder-[#999999]"
+                }`}
               autoFocus
             />
           </div>
-        )}
+        </div>
+      )}
 
-        {renderFileTree(files)}
-      </div>
+      {/* File Tree */}
+      <div className="mt-1">{renderFileTree(files)}</div>
     </div>
   );
 };
