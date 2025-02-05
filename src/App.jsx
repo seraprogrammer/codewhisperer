@@ -31,6 +31,7 @@ import {
   ClipboardCopy,
   Terminal,
   Copy,
+  Users,
 } from "lucide-react";
 import { getIconForFile, getIconForFolder } from "vscode-icons-js";
 import path from "path";
@@ -39,6 +40,7 @@ import { FileExplorerPanel } from "./components/FileExplorer";
 import { SidebarNav } from "./components/Sidebar";
 import { TabBar } from "./components/TabBar";
 import { useFullscreen } from "./hooks/useFullscreen";
+import CollabEditor from "./components/CollabEditor";
 
 // First, move the ContextMenu component outside of the App component
 const ContextMenu = ({
@@ -203,12 +205,18 @@ const Sidebar = React.memo(
     onSettingsClick,
   }) => {
     const tabs = [
-      { id: "files", icon: Files, label: "Explorer" },
+      { id: "files", icon: Files, label: "Explorer", onClick: onExplorerClick },
       { id: "search", icon: Search, label: "Search" },
       { id: "git", icon: GitBranch, label: "Source Control" },
       { id: "debug", icon: Bug, label: "Run and Debug" },
       { id: "extensions", icon: Package, label: "Extensions" },
-      { id: "settings", icon: Settings, label: "Settings" },
+      { id: "collab", icon: Users, label: "Collaborative Editor" },
+      {
+        id: "settings",
+        icon: Settings,
+        label: "Settings",
+        onClick: onSettingsClick,
+      },
     ];
 
     return (
@@ -2314,7 +2322,7 @@ function App() {
       />
 
       {/* Show FileExplorer */}
-      {isExplorerOpen && (
+      {isExplorerOpen && activeTab !== "collab" && (
         <FileExplorerPanel
           isDarkMode={isDarkMode}
           files={files}
@@ -2324,7 +2332,7 @@ function App() {
       )}
 
       {/* Show Settings */}
-      {isSettingsOpen && (
+      {isSettingsOpen && activeTab !== "collab" && (
         <SettingsPanel
           settings={editorSettings}
           onUpdateSettings={handleUpdateSettings}
@@ -2332,139 +2340,152 @@ function App() {
         />
       )}
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <div
-          className={`flex items-center justify-between px-4 py-2 ${
-            isDarkMode
-              ? "bg-[#1e1e1e] border-b border-[#333333]"
-              : "bg-white border-b border-gray-200"
-          }`}
-        >
-          <TabBar
-            tabs={openTabs}
-            activeTabId={activeTabId}
-            onTabClick={(tabId) => {
-              setActiveTabId(tabId);
-              const tab = openTabs.find((t) => t.id === tabId);
-              if (tab) setEditorContent(tab.content);
-            }}
-            onTabClose={handleTabClose}
+      {/* Main Content Area */}
+      {activeTab === "collab" ? (
+        // Collaborative Editor takes full width when active
+        <div className="flex-1">
+          <CollabEditor
             isDarkMode={isDarkMode}
+            editorContent={editorContent}
+            onEditorChange={(value) => setEditorContent(value)}
           />
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setIsLiveMode(!isLiveMode)}
-              className={`px-3 py-1.5 rounded-md flex items-center space-x-2 transition-colors ${
-                isLiveMode
-                  ? isDarkMode
-                    ? "bg-green-600 text-white"
-                    : "bg-green-500 text-white"
-                  : isDarkMode
-                  ? "hover:bg-[#333333] text-gray-300 hover:text-white"
-                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-              }`}
-              title={
-                isLiveMode ? "Disable Live Updates" : "Enable Live Updates"
-              }
-            >
-              <div
-                className={`w-2 h-2 rounded-full ${
+        </div>
+      ) : (
+        // Regular Editor Layout
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <div
+            className={`flex items-center justify-between px-4 py-2 ${
+              isDarkMode
+                ? "bg-[#1e1e1e] border-b border-[#333333]"
+                : "bg-white border-b border-gray-200"
+            }`}
+          >
+            <TabBar
+              tabs={openTabs}
+              activeTabId={activeTabId}
+              onTabClick={(tabId) => {
+                setActiveTabId(tabId);
+                const tab = openTabs.find((t) => t.id === tabId);
+                if (tab) setEditorContent(tab.content);
+              }}
+              onTabClose={handleTabClose}
+              isDarkMode={isDarkMode}
+            />
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setIsLiveMode(!isLiveMode)}
+                className={`px-3 py-1.5 rounded-md flex items-center space-x-2 transition-colors ${
                   isLiveMode
-                    ? "bg-white animate-pulse"
+                    ? isDarkMode
+                      ? "bg-green-600 text-white"
+                      : "bg-green-500 text-white"
                     : isDarkMode
-                    ? "bg-gray-500"
-                    : "bg-gray-400"
+                    ? "hover:bg-[#333333] text-gray-300 hover:text-white"
+                    : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                }`}
+                title={
+                  isLiveMode ? "Disable Live Updates" : "Enable Live Updates"
+                }
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    isLiveMode
+                      ? "bg-white animate-pulse"
+                      : isDarkMode
+                      ? "bg-gray-500"
+                      : "bg-gray-400"
+                  }`}
+                />
+                <span className="text-sm">Live</span>
+              </button>
+              <button
+                onClick={toggleFullscreen}
+                className={`p-1.5 rounded-md transition-colors ${
+                  isDarkMode
+                    ? "hover:bg-[#333333] text-gray-300 hover:text-white"
+                    : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                }`}
+                title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleShare}
+                className={`p-1.5 rounded-md transition-colors ${
+                  isDarkMode
+                    ? "hover:bg-[#333333] text-gray-300 hover:text-white"
+                    : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                }`}
+                title={isCopied ? "Copied!" : "Copy Code"}
+              >
+                {isCopied ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={`p-1.5 rounded-md transition-colors ${
+                  isDarkMode
+                    ? "hover:bg-[#333333] text-gray-300 hover:text-white"
+                    : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                }`}
+                title={isDarkMode ? "Light Mode" : "Dark Mode"}
+              >
+                {isDarkMode ? (
+                  <Sun className="w-4 h-4 text-gray-300" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                onClick={handleRunCode}
+                className="px-4 py-1.5 bg-blue-600 text-white rounded-md flex items-center space-x-2 hover:bg-blue-700 transition-colors"
+              >
+                <Play className="w-4 h-4" />
+                <span>Run</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1">
+            <PanelGroup direction="horizontal">
+              <Panel defaultSize={70} minSize={30}>
+                {openTabs.length > 0 ? (
+                  <Editor
+                    height="100%"
+                    defaultLanguage="javascript"
+                    value={editorContent}
+                    onChange={handleEditorChange}
+                    theme={isDarkMode ? "vs-dark" : "light"}
+                    options={editorOptions}
+                    onMount={handleEditorDidMount}
+                  />
+                ) : (
+                  <NoFileOpen isDarkMode={isDarkMode} />
+                )}
+              </Panel>
+
+              <PanelResizeHandle
+                className={`w-1.5 ${
+                  isDarkMode
+                    ? "hover:bg-blue-600 bg-[#3c3c3c]"
+                    : "hover:bg-blue-400 bg-gray-200"
                 }`}
               />
-              <span className="text-sm">Live</span>
-            </button>
-            <button
-              onClick={toggleFullscreen}
-              className={`p-1.5 rounded-md transition-colors ${
-                isDarkMode
-                  ? "hover:bg-[#333333] text-gray-300 hover:text-white"
-                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-              }`}
-              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleShare}
-              className={`p-1.5 rounded-md transition-colors ${
-                isDarkMode
-                  ? "hover:bg-[#333333] text-gray-300 hover:text-white"
-                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-              }`}
-              title={isCopied ? "Copied!" : "Copy Code"}
-            >
-              {isCopied ? (
-                <Check className="w-4 h-4 text-green-500" />
-              ) : (
-                <Share2 className="w-4 h-4" />
-              )}
-            </button>
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-1.5 rounded-md transition-colors ${
-                isDarkMode
-                  ? "hover:bg-[#333333] text-gray-300 hover:text-white"
-                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
-              }`}
-              title={isDarkMode ? "Light Mode" : "Dark Mode"}
-            >
-              {isDarkMode ? (
-                <Sun className="w-4 h-4 text-gray-300" />
-              ) : (
-                <Moon className="w-4 h-4" />
-              )}
-            </button>
-            <button
-              onClick={handleRunCode}
-              className="px-4 py-1.5 bg-blue-600 text-white rounded-md flex items-center space-x-2 hover:bg-blue-700 transition-colors"
-            >
-              <Play className="w-4 h-4" />
-              <span>Run</span>
-            </button>
+
+              <Panel defaultSize={30} minSize={20}>
+                <OutputPanel
+                  output={output}
+                  onClear={() => setOutput("")}
+                  isDarkMode={isDarkMode}
+                />
+              </Panel>
+            </PanelGroup>
           </div>
         </div>
-
-        <div className="flex-1">
-          <PanelGroup direction="horizontal">
-            <Panel defaultSize={70} minSize={30}>
-              {openTabs.length > 0 ? (
-                <Editor
-                  height="100%"
-                  defaultLanguage="javascript"
-                  value={editorContent}
-                  onChange={handleEditorChange}
-                  theme={isDarkMode ? "vs-dark" : "light"}
-                  options={editorOptions}
-                  onMount={handleEditorDidMount}
-                />
-              ) : (
-                <NoFileOpen isDarkMode={isDarkMode} />
-              )}
-            </Panel>
-
-            <PanelResizeHandle
-              className={`w-1.5 ${
-                isDarkMode
-                  ? "hover:bg-blue-600 bg-[#3c3c3c]"
-                  : "hover:bg-blue-400 bg-gray-200"
-              }`}
-            />
-
-            <Panel defaultSize={30} minSize={20}>
-              <OutputPanel
-                output={output}
-                onClear={() => setOutput("")}
-                isDarkMode={isDarkMode}
-              />
-            </Panel>
-          </PanelGroup>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
