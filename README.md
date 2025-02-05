@@ -14,7 +14,7 @@ An online code editor for JavaScript that allows users to write, execute, and de
 Clone the repository and open the project in your local development environment:
 
 ```sh
-git clone https://github.com/your-username/js-code-editor.git
+git clone https://github.com/seraprogrammer/codewhisperer.git
 cd js-code-editor
 ```
 
@@ -43,5 +43,5 @@ This project is licensed under the [MIT License](LICENSE).
 You can try the live demo here: [Live Demo](https://your-demo-link.com)
 
 ## Author
-Developed by [Your Name](https://github.com/your-username).
+Developed by Nazmul
 
