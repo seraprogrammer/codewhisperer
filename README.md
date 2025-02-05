@@ -15,7 +15,7 @@ Clone the repository and open the project in your local development environment:
 
 ```sh
 git clone https://github.com/seraprogrammer/codewhisperer.git
-cd js-code-editor
+cd codewhisperer
 ```
 
 Then, install dependencies (if any):
@@ -28,7 +28,7 @@ npm install
 Start the development server:
 
 ```sh
-npm start
+npm run dev
 ```
 
 Or open `index.html` in your browser if it is a static project.
