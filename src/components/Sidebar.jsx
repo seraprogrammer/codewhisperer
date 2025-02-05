@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  Files,
-  Settings,
-  Search,
-  GitBranch,
-  Bug,
-  Package,
-  Users,
-} from "lucide-react";
+import { Files, Settings } from "lucide-react";
 
 export const SidebarNav = ({
   activeTab,
@@ -18,7 +10,6 @@ export const SidebarNav = ({
 }) => {
   const tabs = [
     { id: "files", icon: Files, label: "Explorer", onClick: onExplorerClick },
-    { id: "collab", icon: Users, label: "Collaborative Editor" },
     {
       id: "settings",
       icon: Settings,
