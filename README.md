@@ -1,6 +1,7 @@
 # JavaScript Online Code Editor
 
 An online code editor for JavaScript that allows users to write, execute, and debug JavaScript code in a web-based environment.
+![image](https://github.com/user-attachments/assets/9330d3b4-81c7-4b7c-9e24-f84f6bd7442c)
 
 ## Features
 - Real-time JavaScript execution
