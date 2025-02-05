@@ -40,7 +40,7 @@ Feel free to contribute by submitting issues or creating pull requests.
 This project is licensed under the [MIT License](LICENSE).
 
 ## Demo
-You can try the live demo here: [Live Demo](https://your-demo-link.com)
+You can try the live demo here: [Live Demo](https://codewhisperer.vercel.app/)
 
 ## Author
 Developed by Nazmul
