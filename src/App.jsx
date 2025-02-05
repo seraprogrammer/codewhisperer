@@ -503,14 +503,18 @@ const Tab = ({ file, isActive, onClick, onClose, isDarkMode }) => {
 const getDefaultSettings = () => ({
   fontSize: 14,
   wordWrap: "on",
-  minimap: true,
+  minimap: {
+    enabled: true,
+    scale: 1,
+    showSlider: "always",
+    renderCharacters: false,
+    maxColumn: 80,
+  },
   lineNumbers: "on",
   tabSize: 2,
   cursorStyle: "line",
-  cursorBlinking: "blink",
-  formatOnSave: true,
-  bracketPairColorization: true,
-  renderWhitespace: "all",
+  cursorBlinking: "expand", // Smoother animation
+  cursorSmoothCaretAnimation: "on",
   smoothScrolling: true,
   mouseWheelZoom: true,
   padding: { top: 10 },
@@ -518,6 +522,18 @@ const getDefaultSettings = () => ({
   matchBrackets: "always",
   autoClosingBrackets: "always",
   autoClosingQuotes: "always",
+  fontLigatures: true, // Enables font ligatures for better visuals
+  bracketPairColorization: true,
+  renderWhitespace: "all",
+  stickyScroll: { enabled: true }, // Keeps function headers in view
+  editorHover: { enabled: true, delay: 150, sticky: true }, // Enhanced hover animations
+  animation: { enabled: true }, // Ensures smooth transitions
+  tokenColorCustomizations: {
+    comments: "#08ec00",
+    functions: "#ffdd00",
+    keywords: "#ff007f",
+    variables: "#00ffff",
+  },
   suggest: {
     showKeywords: true,
     showSnippets: true,
@@ -544,6 +560,20 @@ const getDefaultSettings = () => ({
   },
   wordBasedSuggestions: true,
   semanticHighlighting: true,
+  editorRulers: [80, 100], // Guides for clean code formatting
+  workbench: {
+    colorTheme: "One Dark Pro", // Dark theme with animations
+    iconTheme: "material-icon-theme",
+    tree: {
+      smoothScrolling: true, // Animated sidebar scrolling
+    },
+    sideBar: {
+      animated: true, // Sidebar open/close animations
+    },
+    statusBar: {
+      animated: true, // Status bar color changes smoothly
+    },
+  },
 });
 
 // Add this new function to define custom completions
