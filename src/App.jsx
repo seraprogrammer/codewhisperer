@@ -40,6 +40,7 @@ import { FileExplorerPanel } from "./components/FileExplorer";
 import { SidebarNav } from "./components/Sidebar";
 import { TabBar } from "./components/TabBar";
 import { useFullscreen } from "./hooks/useFullscreen";
+import { GitHubReadmeViewer } from "./components/GitHubReadmeViewer";
 
 // Add these effects after other imports and before the App component
 const STORAGE_KEYS = {
@@ -210,6 +211,7 @@ const Sidebar = React.memo(
     isDarkMode,
     onExplorerClick,
     onSettingsClick,
+    onGithubReadmeClick,
   }) => {
     const tabs = [
       { id: "files", icon: Files, label: "Explorer", onClick: onExplorerClick },
@@ -218,6 +220,12 @@ const Sidebar = React.memo(
         icon: Settings,
         label: "Settings",
         onClick: onSettingsClick,
+      },
+      {
+        id: "github-readme",
+        icon: GitBranch,
+        label: "GitHub README",
+        onClick: onGithubReadmeClick,
       },
     ];
 
@@ -2361,13 +2369,22 @@ function App() {
   }, [activeTabId, openTabs]);
 
   const clearLocalStorage = () => {
-    const confirmation = window.confirm("Are you sure you want to clear all stored data? This will reset the editor to its initial state.");
+    const confirmation = window.confirm(
+      "Are you sure you want to clear all stored data? This will reset the editor to its initial state."
+    );
     if (confirmation) {
-      Object.keys(STORAGE_KEYS).forEach(key => {
+      Object.keys(STORAGE_KEYS).forEach((key) => {
         localStorage.removeItem(STORAGE_KEYS[key]);
       });
       window.location.reload();
     }
+  };
+
+  const [isReadmeOpen, setIsReadmeOpen] = useState(false);
+
+  const handleGithubReadmeClick = () => {
+    setIsReadmeOpen(true);
+    setActiveTab("github-readme");
   };
 
   return (
@@ -2382,6 +2399,7 @@ function App() {
         isDarkMode={isDarkMode}
         onExplorerClick={handleExplorerClick}
         onSettingsClick={handleSettingsClick}
+        onGithubReadmeClick={handleGithubReadmeClick}
       />
 
       {/* Show FileExplorer */}
@@ -2548,6 +2566,11 @@ function App() {
           </PanelGroup>
         </div>
       </div>
+      <GitHubReadmeViewer
+        isOpen={isReadmeOpen}
+        onClose={() => setIsReadmeOpen(false)}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }
