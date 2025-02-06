@@ -1,26 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
-export const GitHubReadmeViewer = ({ isOpen, onClose, isDarkMode }) => {
-  const [readmeContent, setReadmeContent] = useState("");
+export const HtmlEditor = ({ isOpen, onClose, isDarkMode }) => {
+  const [htmlContent, setHtmlContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
-      fetchReadmeContent();
+      fetchHtmlContent();
     }
   }, [isOpen]);
 
-  const fetchReadmeContent = async () => {
+  const fetchHtmlContent = async () => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        "https://raw.githubusercontent.com/seraprogrammer/Extensions/main/index.html"
+        "https://raw.githubusercontent.com/seraprogrammer/Extensions/main/htmleditor.html"
       );
-      if (!response.ok) throw new Error("Failed to fetch README content");
+      if (!response.ok) throw new Error("Failed to fetch HTML content");
       const content = await response.text();
-      // Add custom scrollbar styles to the HTML content
       const styledContent = `
         <style>
           ::-webkit-scrollbar {
@@ -44,32 +43,26 @@ export const GitHubReadmeViewer = ({ isOpen, onClose, isDarkMode }) => {
         </style>
         ${content}
       `;
-      setReadmeContent(styledContent);
+      setHtmlContent(styledContent);
       setError(null);
     } catch (err) {
-      setError("Failed to fetch content. Please try again later.");
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-[700px] transform transition-transform duration-300 ease-in-out ${
-        isOpen ? "translate-x-0" : "translate-x-full"
-      } ${
+      className={`fixed inset-0 z-50 ${
         isDarkMode ? "bg-[#1e1e1e]" : "bg-white"
-      } shadow-xl z-40 custom-scrollbar`}
-      style={{
-        "--scrollbar-width": "8px",
-        "--scrollbar-track": isDarkMode ? "#1e1e1e" : "#f1f1f1",
-        "--scrollbar-thumb": isDarkMode ? "#4a4a4a" : "#888",
-        "--scrollbar-thumb-hover": isDarkMode ? "#555" : "#555",
-      }}
+      }`}
     >
       {/* Header */}
       <div
-        className={`flex items-center justify-between p-4 border-b ${
+        className={`h-16 flex items-center justify-between px-4 border-b ${
           isDarkMode ? "border-[#333333]" : "border-gray-200"
         }`}
       >
@@ -78,11 +71,11 @@ export const GitHubReadmeViewer = ({ isOpen, onClose, isDarkMode }) => {
             isDarkMode ? "text-white" : "text-gray-800"
           }`}
         >
-          Preview
+          HTML Editor
         </h2>
         <button
           onClick={onClose}
-          className={`p-1.5 rounded-md hover:bg-opacity-80 ${
+          className={`p-2 rounded-md hover:bg-opacity-80 ${
             isDarkMode ? "hover:bg-[#333333]" : "hover:bg-gray-100"
           }`}
         >
@@ -93,13 +86,7 @@ export const GitHubReadmeViewer = ({ isOpen, onClose, isDarkMode }) => {
       </div>
 
       {/* Content */}
-      <div
-        className="h-[calc(100%-4rem)] overflow-hidden"
-        style={{
-          scrollbarWidth: "thin",
-          scrollbarColor: isDarkMode ? "#4a4a4a #1e1e1e" : "#888 #f1f1f1",
-        }}
-      >
+      <div className="h-[calc(100%-4rem)] overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div
@@ -111,31 +98,14 @@ export const GitHubReadmeViewer = ({ isOpen, onClose, isDarkMode }) => {
             />
           </div>
         ) : error ? (
-          <div className={`flex flex-col items-center justify-center h-full p-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-            <div className="text-red-500 text-xl mb-2">Failed to Load Content</div>
-            <p className="text-center mb-4">{error}</p>
-            <button
-              onClick={fetchReadmeContent}
-              className={`px-4 py-2 rounded-md ${
-                isDarkMode 
-                  ? 'bg-[#333333] hover:bg-[#444444] text-white' 
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-              }`}
-            >
-              Try Again
-            </button>
-          </div>
+          <div className="text-red-500 text-center p-4">{error}</div>
         ) : (
           <div className="h-full">
             <iframe
-              srcDoc={readmeContent}
+              srcDoc={htmlContent}
               className="w-full h-full border-none"
               title="HTML Preview"
               sandbox="allow-scripts allow-same-origin"
-              style={{
-                scrollbarWidth: "thin",
-                scrollbarColor: isDarkMode ? "#4a4a4a #1e1e1e" : "#888 #f1f1f1",
-              }}
             />
           </div>
         )}

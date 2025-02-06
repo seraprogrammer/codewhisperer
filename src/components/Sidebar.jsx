@@ -1,5 +1,5 @@
 import React from "react";
-import { Files, Settings, BookOpen } from "lucide-react";
+import { Files, Settings, BookOpen, Code2 } from "lucide-react";
 
 export const SidebarNav = ({
   activeTab,
@@ -8,9 +8,16 @@ export const SidebarNav = ({
   onExplorerClick,
   onSettingsClick,
   onGithubReadmeClick,
+  onHtmlEditorClick,
 }) => {
   const tabs = [
     { id: "files", icon: Files, label: "Explorer", onClick: onExplorerClick },
+    {
+      id: "html-editor",
+      icon: Code2,
+      label: "HTML Editor",
+      onClick: onHtmlEditorClick,
+    },
     {
       id: "github-readme",
       icon: BookOpen,

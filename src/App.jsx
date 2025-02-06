@@ -41,6 +41,7 @@ import { SidebarNav } from "./components/Sidebar";
 import { TabBar } from "./components/TabBar";
 import { useFullscreen } from "./hooks/useFullscreen";
 import { GitHubReadmeViewer } from "./components/GitHubReadmeViewer";
+import { HtmlEditor } from "./components/HtmlEditor";
 
 // Add these effects after other imports and before the App component
 const STORAGE_KEYS = {
@@ -212,6 +213,7 @@ const Sidebar = React.memo(
     onExplorerClick,
     onSettingsClick,
     onGithubReadmeClick,
+    onHtmlEditorClick,
   }) => {
     const tabs = [
       { id: "files", icon: Files, label: "Explorer", onClick: onExplorerClick },
@@ -226,6 +228,12 @@ const Sidebar = React.memo(
         icon: GitBranch,
         label: "GitHub README",
         onClick: onGithubReadmeClick,
+      },
+      {
+        id: "html-editor",
+        icon: FileText,
+        label: "HTML Editor",
+        onClick: onHtmlEditorClick,
       },
     ];
 
@@ -2387,6 +2395,15 @@ function App() {
     setActiveTab("github-readme");
   };
 
+  // Add this state near your other useState declarations
+  const [isHtmlEditorOpen, setIsHtmlEditorOpen] = useState(false);
+
+  // Add this handler function with your other handlers
+  const handleHtmlEditorClick = () => {
+    setIsHtmlEditorOpen(true);
+    setActiveTab("html-editor");
+  };
+
   return (
     <div
       className={`h-screen flex ${
@@ -2400,6 +2417,7 @@ function App() {
         onExplorerClick={handleExplorerClick}
         onSettingsClick={handleSettingsClick}
         onGithubReadmeClick={handleGithubReadmeClick}
+        onHtmlEditorClick={handleHtmlEditorClick}
       />
 
       {/* Show FileExplorer */}
@@ -2569,6 +2587,11 @@ function App() {
       <GitHubReadmeViewer
         isOpen={isReadmeOpen}
         onClose={() => setIsReadmeOpen(false)}
+        isDarkMode={isDarkMode}
+      />
+      <HtmlEditor
+        isOpen={isHtmlEditorOpen}
+        onClose={() => setIsHtmlEditorOpen(false)}
         isDarkMode={isDarkMode}
       />
     </div>
