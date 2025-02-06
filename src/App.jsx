@@ -40,6 +40,14 @@ import { SidebarNav } from "./components/Sidebar";
 import { TabBar } from "./components/TabBar";
 import { useFullscreen } from "./hooks/useFullscreen";
 
+// Add these effects after other imports and before the App component
+const STORAGE_KEYS = {
+  FILES: "editore_files",
+  OPEN_TABS: "editore_open_tabs",
+  ACTIVE_TAB: "editore_active_tab",
+  EDITOR_CONTENT: "editore_content",
+};
+
 // First, move the ContextMenu component outside of the App component
 const ContextMenu = ({
   x,
@@ -1701,25 +1709,43 @@ function App() {
   const resizeRef = useRef(null);
   const containerRef = useRef(null);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState(true);
-  const [files, setFiles] = useState([
-    { id: "1", name: "app.js", type: "file", content: "// Welcome to app.js" },
-    { id: "2", name: "main.js", type: "file", content: "// Main file content" },
-    {
-      id: "3",
-      name: "src",
-      type: "folder",
-      isOpen: true,
-      children: [
-        {
-          id: "4",
-          name: "utils.js",
-          type: "file",
-          content: "// Utility functions",
-        },
-      ],
-    },
-  ]);
-  const [openTabs, setOpenTabs] = useState([]);
+  const [files, setFiles] = useState(() => {
+    const savedFiles = localStorage.getItem(STORAGE_KEYS.FILES);
+    return savedFiles
+      ? JSON.parse(savedFiles)
+      : [
+          {
+            id: "1",
+            name: "app.js",
+            type: "file",
+            content: "// Welcome to app.js",
+          },
+          {
+            id: "2",
+            name: "main.js",
+            type: "file",
+            content: "// Main file content",
+          },
+          {
+            id: "3",
+            name: "src",
+            type: "folder",
+            isOpen: true,
+            children: [
+              {
+                id: "4",
+                name: "utils.js",
+                type: "file",
+                content: "// Utility functions",
+              },
+            ],
+          },
+        ];
+  });
+  const [openTabs, setOpenTabs] = useState(() => {
+    const savedTabs = localStorage.getItem(STORAGE_KEYS.OPEN_TABS);
+    return savedTabs ? JSON.parse(savedTabs) : [];
+  });
   const [activeTab, setActiveTab] = useState("explorer");
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -1736,8 +1762,14 @@ function App() {
   const [renameItemId, setRenameItemId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
   const [isExplorerOpen, setIsExplorerOpen] = useState(true);
-  const [activeTabId, setActiveTabId] = useState(null);
-  const [editorContent, setEditorContent] = useState("// Start coding here...");
+  const [activeTabId, setActiveTabId] = useState(() => {
+    const savedActiveTab = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
+    return savedActiveTab || null;
+  });
+  const [editorContent, setEditorContent] = useState(() => {
+    const savedContent = localStorage.getItem(STORAGE_KEYS.EDITOR_CONTENT);
+    return savedContent || "// Start coding here...";
+  });
   const { toggleFullscreen, isFullscreen } = useFullscreen();
   const [isCopied, setIsCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -1807,14 +1839,18 @@ function App() {
   };
 
   const handleEditorChange = (value) => {
+    console.log("Editor content changed:", value);
     setEditorContent(value);
+
+    // Update the content in openTabs
     if (activeTabId) {
-      setOpenTabs((prev) =>
-        prev.map((tab) =>
+      setOpenTabs((prevTabs) =>
+        prevTabs.map((tab) =>
           tab.id === activeTabId ? { ...tab, content: value } : tab
         )
       );
 
+      // Also update the file content in the files array
       setFiles((prevFiles) => {
         const updateFileContent = (items) => {
           return items.map((item) => {
@@ -1831,7 +1867,6 @@ function App() {
       });
     }
 
-    // Add live update handling
     if (isLiveMode) {
       handleLiveUpdate(value);
     }
@@ -1952,6 +1987,8 @@ function App() {
   };
 
   const handleFileClick = (file) => {
+    console.log("Handling file click:", file);
+
     // Check if the file is already open
     const existingTab = openTabs.find((tab) => tab.id === file.id);
 
@@ -1962,7 +1999,7 @@ function App() {
         {
           id: file.id,
           name: file.name,
-          content: file.content || "// Empty file",
+          content: file.content,
           type: file.type,
           path: file.name,
         },
@@ -1971,7 +2008,7 @@ function App() {
 
     // Set this file as active
     setActiveTabId(file.id);
-    setEditorContent(file.content || "// Empty file");
+    setEditorContent(file.content);
   };
 
   const handleTabClose = (tabId, event) => {
@@ -1989,10 +2026,17 @@ function App() {
           const lastTab = newTabs[newTabs.length - 1];
           setActiveTabId(lastTab.id);
           setEditorContent(lastTab.content);
+          localStorage.setItem(STORAGE_KEYS.ACTIVE_TAB, lastTab.id);
+          localStorage.setItem(STORAGE_KEYS.EDITOR_CONTENT, lastTab.content);
         } else {
           // No tabs left
           setActiveTabId(null);
           setEditorContent("// Start coding here...");
+          localStorage.removeItem(STORAGE_KEYS.ACTIVE_TAB);
+          localStorage.setItem(
+            STORAGE_KEYS.EDITOR_CONTENT,
+            "// Start coding here..."
+          );
         }
       }
 
@@ -2281,6 +2325,39 @@ function App() {
   useEffect(() => {
     localStorage.setItem("isLiveMode", JSON.stringify(isLiveMode));
   }, [isLiveMode]);
+
+  // Keep the save effects
+  useEffect(() => {
+    console.log("Saving files:", files);
+    localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(files));
+  }, [files]);
+
+  useEffect(() => {
+    console.log("Saving tabs:", openTabs);
+    localStorage.setItem(STORAGE_KEYS.OPEN_TABS, JSON.stringify(openTabs));
+  }, [openTabs]);
+
+  useEffect(() => {
+    if (activeTabId) {
+      console.log("Saving active tab:", activeTabId);
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_TAB, activeTabId);
+    }
+  }, [activeTabId]);
+
+  useEffect(() => {
+    console.log("Saving editor content:", editorContent);
+    localStorage.setItem(STORAGE_KEYS.EDITOR_CONTENT, editorContent);
+  }, [editorContent]);
+
+  // Add an effect to restore the active tab's content
+  useEffect(() => {
+    if (activeTabId) {
+      const activeTab = openTabs.find((tab) => tab.id === activeTabId);
+      if (activeTab) {
+        setEditorContent(activeTab.content);
+      }
+    }
+  }, [activeTabId, openTabs]);
 
   return (
     <div
