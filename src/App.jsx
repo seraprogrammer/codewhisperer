@@ -31,6 +31,7 @@ import {
   ClipboardCopy,
   Terminal,
   Copy,
+  Trash,
 } from "lucide-react";
 import { getIconForFile, getIconForFolder } from "vscode-icons-js";
 import path from "path";
@@ -2109,13 +2110,13 @@ function App() {
     };
 
     setFiles((prevFiles) => {
-      const addItemToPath = (items, pathIds) => {
-        if (pathIds.length === 0) {
+      const addItemToPath = (items, path) => {
+        if (path.length === 0) {
           return [...items, newItem];
         }
 
         return items.map((item) => {
-          if (item.id === pathIds[0]) {
+          if (item.id === path[0]) {
             return {
               ...item,
               isOpen: true,
@@ -2125,7 +2126,7 @@ function App() {
           if (item.children) {
             return {
               ...item,
-              children: addItemToPath(item.children, pathIds.slice(1)),
+              children: addItemToPath(item.children, path.slice(1)),
             };
           }
           return item;
@@ -2359,6 +2360,16 @@ function App() {
     }
   }, [activeTabId, openTabs]);
 
+  const clearLocalStorage = () => {
+    const confirmation = window.confirm("Are you sure you want to clear all stored data? This will reset the editor to its initial state.");
+    if (confirmation) {
+      Object.keys(STORAGE_KEYS).forEach(key => {
+        localStorage.removeItem(STORAGE_KEYS[key]);
+      });
+      window.location.reload();
+    }
+  };
+
   return (
     <div
       className={`h-screen flex ${
@@ -2486,6 +2497,17 @@ function App() {
             >
               <Play className="w-4 h-4" />
               <span>Run</span>
+            </button>
+            <button
+              onClick={clearLocalStorage}
+              className={`p-1.5 rounded-md ${
+                isDarkMode
+                  ? "hover:bg-[#333333] text-red-400"
+                  : "hover:bg-gray-200 text-red-500"
+              }`}
+              title="Clear Local Storage"
+            >
+              <Trash className="w-4 h-4" />
             </button>
           </div>
         </div>
