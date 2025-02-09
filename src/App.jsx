@@ -608,6 +608,159 @@ const getCustomCompletions = (monaco) => {
     provideCompletionItems: (model, position) => {
       const suggestions = [
         {
+          label: "obj",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "const user = {",
+            '\tname: "John Doe",',
+            "\tage: 25,",
+            '\tcity: "New York",',
+            "\tgreet: function() {",
+            "\t\tconsole.log(`Hello, my name is ${this.name} and I'm from ${this.city}.`);",
+            "\t}",
+            "};",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Object",
+          documentation: "Creates a basic object with key-value pairs.",
+        },
+        {
+          label: "arr",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "const numbers = [1, 2, 3, 4, 5];",
+            "console.log(numbers);",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Array",
+          documentation: "Creates a simple array with numbers.",
+        },
+        {
+          label: "fn",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "function greet(name) {",
+            "\treturn `Hello, ${name}!`;",
+            "}",
+            "console.log(greet('John'));",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Function",
+          documentation: "Creates a basic function with a parameter.",
+        },
+        {
+          label: "arrowfn",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "const greet = (name) => `Hello, ${name}!`;",
+            "console.log(greet('John'));",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Arrow Function",
+          documentation: "Creates an arrow function.",
+        },
+        {
+          label: "class",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "class Person {",
+            "\tconstructor(name, age) {",
+            "\t\tthis.name = name;",
+            "\t\tthis.age = age;",
+            "\t}",
+            "\tgreet() {",
+            "\t\tconsole.log(`Hello, my name is ${this.name}.`);",
+            "\t}",
+            "}",
+            "const john = new Person('John', 25);",
+            "john.greet();",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Class",
+          documentation: "Creates a JavaScript class.",
+        },
+        {
+          label: "promise",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "const fetchData = () => {",
+            "\treturn new Promise((resolve, reject) => {",
+            "\t\tsetTimeout(() => {",
+            '\t\t\tresolve("Data received!");',
+            "\t\t}, 2000);",
+            "\t});",
+            "};",
+            "fetchData().then(console.log);",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Promise",
+          documentation: "Creates a function returning a Promise.",
+        },
+        {
+          label: "asyncfn",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "async function fetchData() {",
+            "\treturn new Promise((resolve) => {",
+            "\t\tsetTimeout(() => {",
+            '\t\t\tresolve("Data received!");',
+            "\t\t}, 2000);",
+            "\t});",
+            "}",
+            "fetchData().then(console.log);",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Async Function",
+          documentation: "Creates an async function that returns a promise.",
+        },
+        {
+          label: "map",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "const numbers = [1, 2, 3, 4, 5];",
+            "const doubled = numbers.map(num => num * 2);",
+            "console.log(doubled);",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Array Map",
+          documentation: "Maps over an array and doubles the values.",
+        },
+        {
+          label: "filter",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "const numbers = [1, 2, 3, 4, 5];",
+            "const even = numbers.filter(num => num % 2 === 0);",
+            "console.log(even);",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Array Filter",
+          documentation: "Filters even numbers from an array.",
+        },
+        {
+          label: "reduce",
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: [
+            "const numbers = [1, 2, 3, 4, 5];",
+            "const sum = numbers.reduce((acc, num) => acc + num, 0);",
+            "console.log(sum);",
+          ].join("\n"),
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: "Array Reduce",
+          documentation: "Reduces an array to a sum.",
+        },
+
+        {
           label: "cl",
           kind: monaco.languages.CompletionItemKind.Snippet,
           insertText: "console.log($0);",
